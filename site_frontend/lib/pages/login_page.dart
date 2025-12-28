@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/event_provider.dart';
+import '../providers/auth_provider.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -12,7 +12,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _usernameController = TextEditingController();    ////kullanıcı formu doldururken veriler bu controller’lar üzerinden okunur ve backend’e gönderilebilir
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   String? _errorMessage;
@@ -21,26 +21,33 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final provider = Provider.of<EventProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    final success = await provider.login(
-      _usernameController.text,
-      _passwordController.text,
-    );
+    try {
+      await authProvider.login(
+        _usernameController.text,
+        _passwordController.text,
+      );
 
-    setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
 
-    if (success) {
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/admin');
-    } else {
+      
+      // Admin paneline değil, ana sayfaya yönlendir
+      Navigator.pushReplacementNamed(context, '/');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Giriş başarılı!')),
+      );
+    } catch (e) {
       setState(() {
-        _errorMessage = "Giriş başarısız. Kullanıcı adı veya şifre hatalı.";
+        _isLoading = false;
+        _errorMessage = "Giriş başarısız: $e";
       });
     }
   }
@@ -49,7 +56,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Yönetici Girişi'),
+        title: const Text('Giriş Yap'),
         backgroundColor: Colors.deepPurple,
       ),
       body: Center(
@@ -62,7 +69,7 @@ class _LoginPageState extends State<LoginPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text(
-                  'Admin Panel Girişi',
+                  'Hoş Geldiniz',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 32),
@@ -73,6 +80,7 @@ class _LoginPageState extends State<LoginPage> {
                   decoration: const InputDecoration(
                     labelText: 'Kullanıcı Adı',
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person),
                   ),
                   validator: (val) =>
                       val == null || val.isEmpty ? "Kullanıcı adı gerekli" : null,
@@ -86,6 +94,7 @@ class _LoginPageState extends State<LoginPage> {
                   decoration: const InputDecoration(
                     labelText: 'Şifre',
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock),
                   ),
                   validator: (val) =>
                       val == null || val.isEmpty ? "Şifre gerekli" : null,
@@ -95,12 +104,14 @@ class _LoginPageState extends State<LoginPage> {
 
                 // ERROR MESSAGE
                 if (_errorMessage != null)
-                  Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.red),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-
-                const SizedBox(height: 12),
 
                 // LOGIN BUTTON
                 ElevatedButton(
@@ -112,7 +123,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Giriş Yap'),
+                      : const Text('Giriş Yap', style: TextStyle(fontSize: 16)),
                 ),
 
                 const SizedBox(height: 16),

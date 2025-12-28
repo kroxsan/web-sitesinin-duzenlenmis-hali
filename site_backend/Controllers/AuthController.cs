@@ -59,7 +59,7 @@ namespace site_backend.Controllers
                 return Unauthorized(new { message = "Şifre yanlış." });
 
             var token = GenerateJwtToken(user);
-            return Ok(new { token });
+            return Ok(new { token, userId = user.Id });
         }
 
         // --- JWT Token Üretimi ---

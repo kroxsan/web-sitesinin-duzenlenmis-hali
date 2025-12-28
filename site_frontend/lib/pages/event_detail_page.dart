@@ -1,126 +1,239 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import '../data/event.dart';
+import '../providers/auth_provider.dart';
 
-class EventDetailPage extends StatelessWidget {
+class EventDetailPage extends StatefulWidget {
   final Event event;
   const EventDetailPage({super.key, required this.event});
 
   @override
+  State<EventDetailPage> createState() => _EventDetailPageState();
+}
+
+class _EventDetailPageState extends State<EventDetailPage> {
+  int ticketQuantity = 1;
+  late Event currentEvent;
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    currentEvent = widget.event;
+    fetchEvent(); // 👈 sayfa açılır açılmaz güncel kapasite
+  }
+
+  /// 🔄 Backend'den event'i tekrar çek
+  Future<void> fetchEvent() async {
+    try {
+      final response = await http.get(
+        Uri.parse("http://localhost:5151/api/events/${currentEvent.id}"),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          currentEvent = Event.fromJson(data);
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> purchaseTicket() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final token = authProvider.token;
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bilet almak için giriş yapmalısınız')),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse("http://localhost:5151/api/tickets"),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          "eventId": int.parse(currentEvent.id),
+          "quantity": ticketQuantity,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        await fetchEvent(); // 👈 SATIN ALDIKTAN SONRA GÜNCEL KAPASİTE
+
+        setState(() {
+          ticketQuantity = 1;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bilet başarıyla alındı'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        final err = jsonDecode(response.body);
+        throw Exception(err.toString());
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Hata: $e")),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  void showPurchaseDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          title: const Text('Bilet Satın Al'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Bilet Fiyatı: ${currentEvent.price.toStringAsFixed(0)} ₺'),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    onPressed: ticketQuantity > 1
+                        ? () => setStateDialog(() => ticketQuantity--)
+                        : null,
+                    icon: const Icon(Icons.remove),
+                  ),
+                  Text('$ticketQuantity',
+                      style: const TextStyle(fontSize: 20)),
+                  IconButton(
+                    onPressed: ticketQuantity < currentEvent.capacity
+                        ? () => setStateDialog(() => ticketQuantity++)
+                        : null,
+                    icon: const Icon(Icons.add),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Toplam: ${(currentEvent.price * ticketQuantity).toStringAsFixed(0)} ₺',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('İptal'),
+            ),
+            ElevatedButton(
+              onPressed: currentEvent.capacity <= 0
+                  ? null
+                  : () {
+                      Navigator.pop(context);
+                      purchaseTicket();
+                    },
+              child: const Text('Satın Al'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isSoldOut = currentEvent.capacity <= 0;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(event.name),
+        title: Text(currentEvent.name),
         backgroundColor: Colors.deepPurple,
       ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🖼️ Görsel
             Image.network(
-              event.imageUrl,
+              currentEvent.imageUrl,
               width: double.infinity,
               height: 250,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                height: 250,
-                color: Colors.grey[300],
-                alignment: Alignment.center,
-                child: const Icon(Icons.broken_image, size: 64),
-              ),
             ),
-
-            // 📋 Bilgiler
             Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    event.name,
+                    currentEvent.name,
                     style: const TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 10),
+
                   Row(
                     children: [
                       const Icon(Icons.location_on, color: Colors.deepPurple),
                       const SizedBox(width: 6),
-                      Text(event.location,
-                          style: const TextStyle(fontSize: 16)),
+                      Text(currentEvent.city),
                     ],
                   ),
                   const SizedBox(height: 8),
+
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today, color: Colors.deepPurple),
+                      const Icon(Icons.calendar_today,
+                          color: Colors.deepPurple),
                       const SizedBox(width: 6),
                       Text(
-                        "${event.date.day}.${event.date.month}.${event.date.year}",
-                        style: const TextStyle(fontSize: 16),
+                        "${currentEvent.date.day}.${currentEvent.date.month}.${currentEvent.date.year}",
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
+
                   Row(
                     children: [
                       const Icon(Icons.people, color: Colors.deepPurple),
                       const SizedBox(width: 6),
-                      Text("Kapasite: ${event.capacity}",
-                          style: const TextStyle(fontSize: 16)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.category, color: Colors.deepPurple),
-                      const SizedBox(width: 6),
-                      Text(event.category,
-                          style: const TextStyle(fontSize: 16)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.attach_money, color: Colors.deepPurple),
-                      const SizedBox(width: 6),
-                      Text("${event.price.toStringAsFixed(0)} ₺",
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    "Açıklama",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    event.description,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 30),
-                  Center(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: Bilet alma veya katılım işlemi burada olacak
-                      },
-                      icon: const Icon(Icons.confirmation_number_outlined),
-                      label: const Text("Bilet Al / Katıl"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurple,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(200, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                      Text(
+                        isSoldOut
+                            ? "Tamamen Satıldı"
+                            : "Kalan Kapasite: ${currentEvent.capacity}",
+                        style: TextStyle(
+                          color: isSoldOut ? Colors.red : Colors.black,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+                  Text(currentEvent.description),
+
+                  const SizedBox(height: 30),
+                  Center(
+                    child: ElevatedButton(
+                      onPressed:
+                          isSoldOut || isLoading ? null : showPurchaseDialog,
+                      child: isSoldOut
+                          ? const Text("Tükendi")
+                          : const Text("Bilet Al"),
                     ),
                   ),
                 ],

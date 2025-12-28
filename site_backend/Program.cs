@@ -7,7 +7,7 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- CORS Politikası ---
+// --- CORS Politikası ---              //flutter uygulamanın backend API’ya erişebilmesi için zorunlu olan güvenlik iznini veriyor
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFlutterWeb",

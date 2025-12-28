@@ -22,34 +22,74 @@ namespace site_backend.Controllers
         // GET: api/events
         [AllowAnonymous]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Event>>> GetEvents()
+        public async Task<ActionResult<IEnumerable<object>>> GetEvents()
         {
-            var events = await _context.Events.ToListAsync(); //veritabanındaki tüm etkinlikleri çeker
+            var events = await _context.Events
+                .Select(e => new
+                {
+                    e.Id,
+                    e.Name,
+                    e.Description,
+                    e.Category,
+                    e.City,
+                    e.Price,
+                    e.Date,
+                    e.ImageUrl,
+                    e.Location,
+
+                    // Kalan kapasiteyi burada hesaplıyoruz
+                    Capacity = e.Capacity - _context.Tickets
+                        .Where(t => t.EventId == e.Id)
+                        .Sum(t => t.Quantity)
+                })
+                .ToListAsync();
+
             return Ok(events);
         }
 
         // GET: api/events/5
         [AllowAnonymous]
-        [HttpGet("{id}")]       //sonrasında kullanılabilir
-        public async Task<ActionResult<Event>> GetEvent(int id)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<object>> GetEvent(int id)
         {
-            var ev = await _context.Events.FindAsync(id);  //belirli bir etkinliği id'sine göre çeker
-            if (ev == null) return NotFound();
-            return ev;
+            var ev = await _context.Events
+                .Where(e => e.Id == id)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.Name,
+                    e.Description,
+                    e.Category,
+                    e.City,
+                    e.Price,
+                    e.Date,
+                    e.ImageUrl,
+                    e.Location,
+
+                    Capacity = e.Capacity - _context.Tickets
+                        .Where(t => t.EventId == e.Id)
+                        .Sum(t => t.Quantity)
+                })
+                .FirstOrDefaultAsync();
+
+            if (ev == null)
+                return NotFound();
+
+            return Ok(ev);
         }
 
         // POST: api/events
         [HttpPost]
         public async Task<ActionResult<Event>> CreateEvent(Event ev)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
-                return Unauthorized();
-
-            ev.UserId = int.Parse(userIdClaim.Value);
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            ev.UserId = userId;
+            
+            // DateTime'ı UTC'ye çevir
+            if (ev.Date.Kind == DateTimeKind.Unspecified)
+            {
+                ev.Date = DateTime.SpecifyKind(ev.Date, DateTimeKind.Utc);
+            }
 
             _context.Events.Add(ev);
             await _context.SaveChangesAsync();
@@ -61,27 +101,45 @@ namespace site_backend.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateEvent(int id, Event ev)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            if (id != ev.Id)
+                return BadRequest();
 
-            if (id != ev.Id) return BadRequest();
+            var existingEvent = await _context.Events.FindAsync(id);
 
-            var existingEvent = await _context.Events
-                .Where(e => e.Id == id && e.UserId == userId)
-                .FirstOrDefaultAsync();
-
-            if (existingEvent == null) return NotFound();
+            if (existingEvent == null)
+                return NotFound();
 
             existingEvent.Name = ev.Name;
             existingEvent.Description = ev.Description;
-            existingEvent.Date = ev.Date;
             existingEvent.Category = ev.Category;
             existingEvent.City = ev.City;
             existingEvent.Price = ev.Price;
+            
+            // DateTime'ı UTC'ye çevir
+            existingEvent.Date = ev.Date.Kind == DateTimeKind.Unspecified 
+                ? DateTime.SpecifyKind(ev.Date, DateTimeKind.Utc) 
+                : ev.Date.ToUniversalTime();
+            
             existingEvent.ImageUrl = ev.ImageUrl;
             existingEvent.Location = ev.Location;
             existingEvent.Capacity = ev.Capacity;
 
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!EventExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
             return NoContent();
         }
 
@@ -89,17 +147,19 @@ namespace site_backend.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEvent(int id)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var ev = await _context.Events.FindAsync(id);
 
-            var ev = await _context.Events          //_context.Events = veritabanındaki Events tablosuna erişim sağlıyor
-                .Where(e => e.Id == id && e.UserId == userId)
-                .FirstOrDefaultAsync();
-
-            if (ev == null) return NotFound();
+            if (ev == null)
+                return NotFound();
 
             _context.Events.Remove(ev);
             await _context.SaveChangesAsync();
             return NoContent();
+        }
+
+        private bool EventExists(int id)
+        {
+            return _context.Events.Any(e => e.Id == id);
         }
     }
 }

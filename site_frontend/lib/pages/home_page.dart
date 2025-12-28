@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/event_provider.dart';
 import '../data/event.dart';
 import '../widgets/event_card.dart';
+import '../widgets/navbar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -25,8 +27,9 @@ class _HomePageState extends State<HomePage> {
     context.read<EventProvider>().fetchEvents();
   }
 
-  List<Event> filterEvents(List<Event> allEvents) {
-    List<Event> filtered = allEvents.where((event) {
+  // 🔹 Filtrelenmiş tüm listeyi döndüren fonksiyon
+  List<Event> getFilteredEvents(List<Event> allEvents) {
+    return allEvents.where((event) {
       final matchesSearch =
           event.name.toLowerCase().contains(search.toLowerCase());
       final matchesCategory =
@@ -35,39 +38,32 @@ class _HomePageState extends State<HomePage> {
           selectedCity == "Tümü" || event.city == selectedCity;
       return matchesSearch && matchesCategory && matchesCity;
     }).toList();
+  }
 
+  // 🔹 Sadece currentPage’e ait dilimi döndüren fonksiyon
+  List<Event> getCurrentPageEvents(List<Event> filteredEvents) {
     int start = (currentPage - 1) * perPage;
-    int end = start + perPage;
-    if (start >= filtered.length) return [];
-    return filtered.sublist(start, end > filtered.length ? filtered.length : end);
+    int end = (start + perPage).clamp(0, filteredEvents.length);
+    if (start >= filteredEvents.length) return [];
+    return filteredEvents.sublist(start, end);
   }
 
   @override
   Widget build(BuildContext context) {
     final allEvents = context.watch<EventProvider>().events;
-    final filteredEvents = filterEvents(allEvents);
+
+    final filteredAll = getFilteredEvents(allEvents); // tüm filtrelenmiş liste
+    final filteredEvents = getCurrentPageEvents(filteredAll); // sadece currentPage
+
+    final totalPages = (filteredAll.length / perPage).ceil();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Etkinlikler"),
-        backgroundColor: Colors.deepPurple,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: IconButton(
-              icon: const Icon(Icons.person),
-              onPressed: () {
-                Navigator.pushNamed(context, '/login');
-              },
-            ),
-          ),
-        ],
-      ),
+      appBar: const NavBar(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Arama ve filtre alanı
+            // 🔍 Arama ve filtre
             Row(
               children: [
                 Expanded(
@@ -77,33 +73,55 @@ class _HomePageState extends State<HomePage> {
                       hintText: "Etkinlik ara...",
                       border: OutlineInputBorder(),
                     ),
-                    onChanged: (value) => setState(() => search = value),
+                    onChanged: (value) => setState(() {
+                      search = value;
+                      currentPage = 1; // filtre değişince sayfayı 1 yap
+                    }),
                   ),
                 ),
                 const SizedBox(width: 10),
                 DropdownButton<String>(
                   value: selectedCategory,
                   items: ["Tümü", "Müzik", "Komedi", "Tiyatro"]
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .map(
+                        (e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(e),
+                        ),
+                      )
                       .toList(),
-                  onChanged: (value) => setState(() => selectedCategory = value!),
+                  onChanged: (value) => setState(() {
+                    selectedCategory = value!;
+                    currentPage = 1;
+                  }),
                 ),
                 const SizedBox(width: 10),
                 DropdownButton<String>(
                   value: selectedCity,
                   items: ["Tümü", "İstanbul", "Ankara", "İzmir"]
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .map(
+                        (e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(e),
+                        ),
+                      )
                       .toList(),
-                  onChanged: (value) => setState(() => selectedCity = value!),
+                  onChanged: (value) => setState(() {
+                    selectedCity = value!;
+                    currentPage = 1;
+                  }),
                 ),
               ],
             ),
+
             const SizedBox(height: 16),
 
-            // Event listesi
+            // 🎟️ Event listesi
             Expanded(
               child: filteredEvents.isEmpty
-                  ? const Center(child: Text("Hiç etkinlik bulunamadı."))
+                  ? const Center(
+                      child: Text("Hiç etkinlik bulunamadı."),
+                    )
                   : GridView.count(
                       crossAxisCount:
                           MediaQuery.of(context).size.width > 800 ? 3 : 1,
@@ -115,7 +133,7 @@ class _HomePageState extends State<HomePage> {
                     ),
             ),
 
-            // Sayfalama
+            // 📄 Sayfalama
             if (filteredEvents.isNotEmpty)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -126,15 +144,11 @@ class _HomePageState extends State<HomePage> {
                         : null,
                     icon: const Icon(Icons.arrow_back),
                   ),
-                  Text("Sayfa $currentPage"),
+                  Text("Sayfa $currentPage / $totalPages"),
                   IconButton(
-                    onPressed: () {
-                      final totalPages =
-                          (filterEvents(allEvents).length / perPage).ceil();
-                      if (currentPage < totalPages) {
-                        setState(() => currentPage++);
-                      }
-                    },
+                    onPressed: currentPage < totalPages
+                        ? () => setState(() => currentPage++)
+                        : null,
                     icon: const Icon(Icons.arrow_forward),
                   ),
                 ],

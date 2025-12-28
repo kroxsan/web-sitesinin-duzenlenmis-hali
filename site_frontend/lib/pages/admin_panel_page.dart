@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/event_provider.dart';
+import '../providers/auth_provider.dart';
 import '../data/event.dart';
 
 class AdminPanelPage extends StatefulWidget {
@@ -12,7 +13,7 @@ class AdminPanelPage extends StatefulWidget {
 
 class _AdminPanelPageState extends State<AdminPanelPage> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController();        //kullanıcı formu doldururken veriler bu controller’lar üzerinden okunur ve backend’e gönderilebilir
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _categoryController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
@@ -20,14 +21,35 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
   final TextEditingController _imageUrlController = TextEditingController();
   final TextEditingController _capacityController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
 
   String? editingEventId;
 
   @override
   void initState() {
     super.initState();
-    // context kullanımı async olmadığı için güvenli
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = context.read<AuthProvider>();
+
+      // 🔐 Giriş kontrolü
+      if (!authProvider.isLoggedIn) {
+        Navigator.pushReplacementNamed(context, '/login');
+        return;
+      }
+
+      // 🔐 ADMIN kontrolü
+      if (!authProvider.isAdmin) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Bu sayfaya sadece admin erişebilir"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        Navigator.pushReplacementNamed(context, '/');
+        return;
+      }
+
       context.read<EventProvider>().fetchEvents();
     });
   }
@@ -41,6 +63,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
     _imageUrlController.text = event.imageUrl;
     _capacityController.text = event.capacity.toString();
     _dateController.text = event.date.toIso8601String().split('T')[0];
+    _locationController.text = event.location;
     editingEventId = event.id;
   }
 
@@ -53,6 +76,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
     _imageUrlController.clear();
     _capacityController.clear();
     _dateController.clear();
+    _locationController.clear();
     editingEventId = null;
   }
 
@@ -72,7 +96,9 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
       imageUrl: _imageUrlController.text.isNotEmpty
           ? _imageUrlController.text
           : "https://picsum.photos/400/200",
-      location: "Bilinmiyor",
+      location: _locationController.text.isNotEmpty
+          ? _locationController.text
+          : "Belirtilmemiş",
       capacity: int.tryParse(_capacityController.text) ?? 100,
     );
 
@@ -117,11 +143,13 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
                   TextFormField(
                     controller: _nameController,
                     decoration: const InputDecoration(labelText: "Etkinlik Adı"),
-                    validator: (value) => value!.isEmpty ? "Boş bırakılamaz" : null,
+                    validator: (value) =>
+                        value!.isEmpty ? "Boş bırakılamaz" : null,
                   ),
                   TextFormField(
                     controller: _descriptionController,
                     decoration: const InputDecoration(labelText: "Açıklama"),
+                    maxLines: 3,
                   ),
                   TextFormField(
                     controller: _categoryController,
@@ -130,6 +158,10 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
                   TextFormField(
                     controller: _cityController,
                     decoration: const InputDecoration(labelText: "Şehir"),
+                  ),
+                  TextFormField(
+                    controller: _locationController,
+                    decoration: const InputDecoration(labelText: "Konum"),
                   ),
                   TextFormField(
                     controller: _priceController,
@@ -144,21 +176,26 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
                     controller: _capacityController,
                     decoration: const InputDecoration(labelText: "Kapasite"),
                     keyboardType: TextInputType.number,
-                    validator: (value) => value!.isEmpty ? "Boş bırakılamaz" : null,
+                    validator: (value) =>
+                        value!.isEmpty ? "Boş bırakılamaz" : null,
                   ),
                   TextFormField(
                     controller: _dateController,
-                    decoration: const InputDecoration(labelText: "Tarih (YYYY-MM-DD)"),
+                    decoration:
+                        const InputDecoration(labelText: "Tarih (YYYY-MM-DD)"),
                     keyboardType: TextInputType.datetime,
-                    validator: (value) => value!.isEmpty ? "Boş bırakılamaz" : null,
+                    validator: (value) =>
+                        value!.isEmpty ? "Boş bırakılamaz" : null,
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton(
                     onPressed: _submitForm,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.deepPurple,
+                      minimumSize: const Size(double.infinity, 50),
                     ),
-                    child: Text(editingEventId != null ? "Güncelle" : "Etkinlik Ekle"),
+                    child:
+                        Text(editingEventId != null ? "Güncelle" : "Etkinlik Ekle"),
                   ),
                   if (editingEventId != null)
                     TextButton(
@@ -177,7 +214,10 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
             ),
             const SizedBox(height: 8),
             eventProvider.events.isEmpty
-                ? const Text("Henüz etkinlik yok.")
+                ? const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Text("Henüz etkinlik yok."),
+                  )
                 : ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -185,6 +225,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
                     itemBuilder: (context, index) {
                       final event = eventProvider.events[index];
                       return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
                         child: ListTile(
                           leading: Image.network(
                             event.imageUrl,
@@ -195,24 +236,35 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
                                 const Icon(Icons.image_not_supported),
                           ),
                           title: Text(event.name),
-                          subtitle:
-                              Text("${event.city} - ${event.date.toLocal()}".split(' ')[0]),
+                          subtitle: Text(
+                            "${event.city} - ${event.date.toLocal()}"
+                                .split(' ')[0],
+                          ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.orange),
+                                icon: const Icon(Icons.edit,
+                                    color: Colors.orange),
                                 onPressed: () => _loadEventToForm(event),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
+                                icon: const Icon(Icons.delete,
+                                    color: Colors.red),
                                 onPressed: () async {
                                   try {
                                     await eventProvider.deleteEvent(event.id);
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text("Etkinlik silindi")),
+                                    );
                                   } catch (e) {
                                     if (!mounted) return;
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text("Silme hatası: $e")),
+                                      SnackBar(
+                                          content:
+                                              Text("Silme hatası: $e")),
                                     );
                                   }
                                 },
