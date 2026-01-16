@@ -7,7 +7,7 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- CORS Politikası ---              //flutter uygulamanın backend API’ya erişebilmesi için zorunlu olan güvenlik iznini veriyor
+// CORS Politikası             //flutter uygulamanın backend API’ya erişebilmesi için zorunlu olan güvenlik iznini veriyor
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFlutterWeb",
@@ -17,11 +17,11 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod());
 });
 
-// --- Veritabanı Bağlantısı ---
+// Veritabanı Bağlantısı
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// --- JWT Ayarları ---
+// JWT Ayarları
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

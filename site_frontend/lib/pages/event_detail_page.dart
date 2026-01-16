@@ -22,10 +22,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
   void initState() {
     super.initState();
     currentEvent = widget.event;
-    fetchEvent(); // 👈 sayfa açılır açılmaz güncel kapasite
+    fetchEvent(); //  sayfa açılır açılmaz güncel kapasite
   }
 
-  /// 🔄 Backend'den event'i tekrar çek
+  ///  Backend'den event'i tekrar çek
   Future<void> fetchEvent() async {
     try {
       final response = await http.get(
@@ -68,7 +68,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
       );
 
       if (response.statusCode == 201) {
-        await fetchEvent(); // 👈 SATIN ALDIKTAN SONRA GÜNCEL KAPASİTE
+        await fetchEvent(); //  SATIN ALDIKTAN SONRA GÜNCEL KAPASİTE
 
         setState(() {
           ticketQuantity = 1;
@@ -160,7 +160,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(currentEvent.name),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: const Color.fromARGB(255, 245, 3, 3),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -188,7 +188,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
                   Row(
                     children: [
-                      const Icon(Icons.location_on, color: Colors.deepPurple),
+                      const Icon(Icons.location_on, color: Color.fromARGB(255, 236, 6, 6)),
                       const SizedBox(width: 6),
                       Text(currentEvent.city),
                     ],
@@ -209,7 +209,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
                   Row(
                     children: [
-                      const Icon(Icons.people, color: Colors.deepPurple),
+                      const Icon(Icons.people, color: Color.fromARGB(255, 245, 3, 3)),
                       const SizedBox(width: 6),
                       Text(
                         isSoldOut

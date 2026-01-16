@@ -15,7 +15,7 @@ class NavBar extends StatelessWidget implements PreferredSizeWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
-      backgroundColor: Colors.deepPurple,
+      backgroundColor: const Color.fromARGB(255, 241, 1, 1),
       elevation: 2,
       actions: [
         const SizedBox(width: 8),
@@ -67,7 +67,7 @@ class NavBar extends StatelessWidget implements PreferredSizeWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple[700],
+                  color: const Color.fromARGB(255, 236, 2, 2),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.white, width: 2),
                 ),
@@ -120,7 +120,7 @@ class NavBar extends StatelessWidget implements PreferredSizeWidget {
                     value: 'tickets',
                     child: Row(
                       children: [
-                        Icon(Icons.confirmation_number, color: Colors.deepPurple),
+                        Icon(Icons.confirmation_number, color: Color.fromARGB(255, 238, 3, 3)),
                         SizedBox(width: 12),
                         Text('Biletlerim'),
                       ],
@@ -134,7 +134,7 @@ class NavBar extends StatelessWidget implements PreferredSizeWidget {
                       child: Row(
                         children: [
                           Icon(Icons.admin_panel_settings,
-                              color: Colors.deepPurple),
+                              color: Color.fromARGB(255, 248, 2, 2)),
                           SizedBox(width: 12),
                           Text('Admin Panel'),
                         ],

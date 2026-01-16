@@ -116,7 +116,7 @@ class _HomePageState extends State<HomePage> {
 
             const SizedBox(height: 16),
 
-            // 🎟️ Event listesi
+            //  Event listesi
             Expanded(
               child: filteredEvents.isEmpty
                   ? const Center(
@@ -133,7 +133,7 @@ class _HomePageState extends State<HomePage> {
                     ),
             ),
 
-            // 📄 Sayfalama
+            //  Sayfalama
             if (filteredEvents.isNotEmpty)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

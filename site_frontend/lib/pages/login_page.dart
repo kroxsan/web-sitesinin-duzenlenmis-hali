@@ -57,7 +57,7 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Giriş Yap'),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: const Color.fromARGB(255, 255, 0, 0),
       ),
       body: Center(
         child: Container(
@@ -117,7 +117,7 @@ class _LoginPageState extends State<LoginPage> {
                 ElevatedButton(
                   onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
+                    backgroundColor: const Color.fromARGB(255, 241, 2, 2),
                     foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 50),
                   ),

@@ -10,7 +10,7 @@ class AuthProvider extends ChangeNotifier {
 
   final String apiUrl = "http://localhost:5151/api/auth";
 
-  // 🔑 ADMIN KONTROLÜ (backend’e kayıtlı username üzerinden)
+  // ADMIN KONTROLÜ (backend’e kayıtlı username üzerinden)
   bool get isAdmin => username == 'admin1';
 
   bool get isLoggedIn => token != null;
@@ -25,7 +25,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 🔐 Login
+  // Login
   Future<void> login(String usernameInput, String password) async {
     final response = await http.post(
       Uri.parse("$apiUrl/login"),
@@ -53,7 +53,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // 🔐 Logout
+  //  Logout
   Future<void> logout() async {
     token = null;
     userId = null;

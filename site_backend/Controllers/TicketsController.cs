@@ -20,7 +20,7 @@ namespace site_backend.Controllers
         }
 
         // GET: api/tickets/my-tickets
-        [HttpGet("my-tickets")]
+        [HttpGet("my-tickets")] //ticket'ları my ticket sayfasına çekmek için
         public async Task<ActionResult<IEnumerable<object>>> GetMyTickets()
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
@@ -63,7 +63,7 @@ namespace site_backend.Controllers
             if (ev == null)
                 return NotFound("Etkinlik bulunamadı");
 
-            // 🔥 Kalan kapasite kontrolü
+            //  Kalan kapasite kontrolü
             var soldTickets = _context.Tickets
                 .Where(t => t.EventId == ev.Id)
                 .Sum(t => t.Quantity);

@@ -47,8 +47,8 @@ class _MyTicketsPageState extends State<MyTicketsPage> {
         },
       );
 
-      print('📥 Response Status: ${response.statusCode}');
-      print('📥 Response Body: ${response.body}');
+      print(' Response Status: ${response.statusCode}');
+      print(' Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final loadedTickets = jsonDecode(response.body) as List<dynamic>;
@@ -73,7 +73,7 @@ class _MyTicketsPageState extends State<MyTicketsPage> {
         throw Exception('Biletler yüklenemedi: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Hata: $e');
+      print(' Hata: $e');
       setState(() => isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -115,7 +115,7 @@ class _MyTicketsPageState extends State<MyTicketsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Biletlerim'),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: const Color.fromARGB(255, 240, 3, 3),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())

@@ -41,7 +41,7 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'Etkinlik Sitesi',
         theme: ThemeData(
-          primarySwatch: Colors.deepPurple,
+          primarySwatch: Colors.red,
           scaffoldBackgroundColor: Colors.grey[100],
         ),
         initialRoute: '/',

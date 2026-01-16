@@ -13,7 +13,7 @@ class EventProvider extends ChangeNotifier {
 
   // Backend'den etkinlikleri çek
   Future<void> fetchEvents() async {
-    print('📥 Etkinlikler backend\'den çekiliyor...');
+    print(' Etkinlikler backend\'den çekiliyor...');
     
     final response = await http.get(
       Uri.parse(apiUrl),
@@ -22,14 +22,14 @@ class EventProvider extends ChangeNotifier {
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
-      print('✅ ${data.length} etkinlik alındı');
+      print(' ${data.length} etkinlik alındı');
 
       _events = data.map((e) {
         // Location kontrolü yap
         String location = e['location'] ?? '';
         if (location.isEmpty) {
           location = '${e['city'] ?? 'Bilinmeyen Şehir'}, Konum Belirtilmemiş';
-          print('⚠️ Event ${e['id']} - ${e['name']}: Location boş, otomatik atandı: $location');
+          print(' Event ${e['id']} - ${e['name']}: Location boş, otomatik atandı: $location');
         }
         
         return Event(
@@ -46,10 +46,10 @@ class EventProvider extends ChangeNotifier {
         );
       }).toList();
 
-      print('✅ Etkinlikler başarıyla yüklendi');
+      print(' Etkinlikler başarıyla yüklendi');
       notifyListeners();
     } else {
-      print('❌ Etkinlikler alınamadı! Status: ${response.statusCode}');
+      print(' Etkinlikler alınamadı! Status: ${response.statusCode}');
       throw Exception("Etkinlikler alınamadı!");
     }
   }

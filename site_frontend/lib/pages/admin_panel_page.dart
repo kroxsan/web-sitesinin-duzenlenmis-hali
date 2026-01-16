@@ -38,7 +38,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
         return;
       }
 
-      // 🔐 ADMIN kontrolü
+      // ADMIN kontrolü
       if (!authProvider.isAdmin) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -130,7 +130,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Yönetici Paneli"),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: const Color.fromARGB(255, 248, 4, 4),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
